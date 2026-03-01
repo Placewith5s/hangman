@@ -164,6 +164,7 @@ namespace Program
         static void Hang()
         {
             Console.WriteLine("Game Over!");
+            Console.WriteLine($"The word was: {chosen_word}");
             Environment.Exit(0);
         }
         static void Win()
