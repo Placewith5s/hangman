@@ -1,46 +1,20 @@
 // using System;
 using System.Text;
+using System.Text.Json;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+
 
 namespace Program
 {
     class Hangman {
+        record Wrong_R(string[] synonyms);
+        record R(string word);
+
         static string hyphens = "";
         const int hyphen_amount = 12;
 
-        static readonly string[] possible_words = [
-            "triradial",
-            "overimpressionability",
-            "penticle",
-            "phytogenetical",
-            "foldboater",
-            "bellite",
-            "relevances",
-            "dharnas",
-            "infusory",
-            "bluetop",
-            "pentahedrical",
-            "formylated",
-            "splinterproof",
-            "ed",
-            "noncompensable",
-            "cabinetmaking",
-            "parallels",
-            "colville",
-            "uppour",
-            "electiveness"
-        ];
-
-        static readonly string[] possible_wrong =
-        [
-            "False!",
-            "Inaccurate!",
-            "Incorrect!",
-            "No!",
-            "None!",
-            "Nothing!",
-            "Try Again!",
-            "Wrong!"
-        ];
+        static string[] possible_wrong = [];
 
         static string chosen_word = "";
         static StringBuilder hangman_word = new();
@@ -106,7 +80,6 @@ namespace Program
             }
 
             Console.WriteLine($"{hyphens} Welcome To Hangman! {hyphens}");
-            chosen_word = Generate_Word(possible_words);
             // Console.WriteLine($"Chosen word: {chosen_word}");
 
             for (int i = 0; i < chosen_word.Length; i++)
@@ -189,8 +162,41 @@ namespace Program
             }
         }
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
+            using HttpClient client = new();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Add(
+                "X-RapidAPI-Key",
+                "7a27d6186bmshf5093e143ba3d89p1d51e2jsn3daa9b15c02a"
+            );
+            client.DefaultRequestHeaders.Add(
+                "X-RapidAPI-Host",
+                "wordsapiv1.p.rapidapi.com"
+            );
+
+            await Process_Words_Async(client);
+
+            static async Task Process_Words_Async(HttpClient client)
+            {
+                var wrong_json = await client.GetFromJsonAsync<Wrong_R>(
+                    "https://wordsapiv1.p.rapidapi.com/words/incorrect/synonyms"
+                );
+                var rnd_word_json = await client.GetFromJsonAsync<R>(
+                    "https://wordsapiv1.p.rapidapi.com/words?random=true"
+                );
+                
+                var wrong_list = new List<string>(possible_wrong);
+
+                foreach (var word_synonym in wrong_json.synonyms)
+                {
+                    wrong_list.Add(word_synonym);
+                }
+
+                possible_wrong = wrong_list.ToArray();
+                chosen_word = JsonSerializer.Serialize(rnd_word_json.word);
+            }
+
             Setup();
 
             while (true)
